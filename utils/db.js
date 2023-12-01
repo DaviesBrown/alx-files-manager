@@ -1,4 +1,3 @@
-import connect from "mongodb";
 import MongoClient from "mongodb/lib/mongo_client";
 
 const host = process.env.DB_HOST || 'localhost';
@@ -21,7 +20,7 @@ class DBClient {
 
   async nbUsers() {
     try {
-      return await this.dbclient.db().collection('users');
+      return await this.dbclient.db().collection('users').countDocuments();
     } catch (err) {
       throw new Error(err);
     }
@@ -29,7 +28,7 @@ class DBClient {
 
   async nbFiles() {
     try {
-      return await this.dbclient.db().collection('files');
+      return await this.dbclient.db().collection('files').countDocuments();
     } catch (err) {
       throw new Error(err);
     }

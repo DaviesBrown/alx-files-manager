@@ -6,13 +6,13 @@ export default class AppController {
     const ralive = redisClient.isAlive();
     const dbalive = dbClient.isAlive();
     res.status(200);
-    res.send({"redis": ralive, "db": dbalive});
+    res.send(JSON.stringify({redis: ralive, db: dbalive}));
 }
 
   static async getStats(req, res) {
     const users = await dbClient.nbUsers();
     const files = await dbClient.nbFiles();
     res.status(200);
-    res.send({"users": users, "files": files});
+    res.send({users, files});
   }
 }

@@ -24,11 +24,7 @@ class RedisClient {
     }
 
     isAlive() {
-        this.store.on("connect", () => {
-            console.log(`connected`);
-            return true;
-        });
-        return false;
+        return this.store.connected;
     }
 
     async get(key) {
@@ -37,14 +33,15 @@ class RedisClient {
             return null;
         }
         try {
-            return val;
+            return JSON.parse(val);
         } catch(err) {
             return null;
         }
     }
 
     async set(key, val, duration) {
-        await this.client.set(key, duration, val);
+        await this.client.set(key, duration, JSON
+            .stringify(val));
     }
 }
 
