@@ -37,15 +37,14 @@ class RedisClient {
             return null;
         }
         try {
-            return JSON.parse(val);
+            return val;
         } catch(err) {
             return null;
         }
     }
 
     async set(key, val, duration) {
-        await this.client.set(key, duration, JSON
-            .stringify(val));
+        await this.client.set(key, duration, val);
     }
 }
 
