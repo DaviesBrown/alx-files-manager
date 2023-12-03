@@ -4,9 +4,8 @@ import dbClient from "../utils/db";
 import redisClient from "../utils/redis";
 import { randomUUID } from "crypto";
 
-export default class FilesController {
-    
-    static async postUpload(req, res) {
+export default class FilesController {  
+  static async postUpload(req, res) {
     const x_token = req.headers['x-token'];
     const user_id = await redisClient.get(`auth_${x_token}`);
     const userCollection = dbClient.dbclient.db().collection('users');
@@ -31,9 +30,8 @@ export default class FilesController {
       }
       const fileCollection = dbClient.dbclient.db().collection('files');
       if (parentId) {
-        console.log(parentId)
+
         const file = await fileCollection.findOne({ "_id": new ObjectID(parentId) });
-        console.log(file)
         if (!file) {
             return res.status(400).send({"error": "Parent not found"});
         } else if (file && file.type !== 'folder') {
@@ -61,5 +59,54 @@ export default class FilesController {
         return res.status(201).send(JSON.stringify(file.ops[0]));
       }
     }
+  }
+
+  static async getShow(req, res) {
+    // GET /files/:id
+    const x_token = req.headers['x-token'];
+    const parentId = req.params.id;
+    const user_id = await redisClient.get(`auth_${x_token}`);
+    const userCollection = dbClient.dbclient.db().collection('users');
+    const user = await userCollection.findOne({ "_id": new ObjectID(user_id) });
+    if (!user) {
+        return res.status(401).send({"error": "Unauthorized"});
+    }
+    const fileCollection = dbClient.dbclient.db().collection('files');
+    const file = await fileCollection.findOne({
+        "_id": new ObjectID(parentId),
+        "userId": new ObjectID(user._id)
+    });
+    if (!file) {
+        return res.status(404).send({"error": "Not found"});
+    }
+    res.status(200).send(file);
+  }
+
+  static async getIndex(req, res) {
+    // GET /files
+    const x_token = req.headers['x-token'];
+    const parentId = req.query && req.query.parentId;
+    console.log(parentId)
+    const user_id = await redisClient.get(`auth_${x_token}`);
+    const userCollection = dbClient.dbclient.db().collection('users');
+    const user = await userCollection.findOne({ "_id": new ObjectID(user_id) });
+    if (!user) {
+        return res.status(401).send({"error": "Unauthorized"});
+    }
+    const fileCollection = dbClient.dbclient.db().collection('files');
+    if (parentId) {
+        let files = await fileCollection.find({
+            "parentId": parentId,
+            "userId": new ObjectID(user_id)
+        });
+        files = await files.toArray();
+        if (files) {
+            return res.send((files));
+        } else {
+            return res.send([]);
+        }
+    }
+    const file = await fileCollection.find({ "userId": new ObjectID(user_id) });
+    res.send(await file.toArray());
   }
 }
