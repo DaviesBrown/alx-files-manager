@@ -5,6 +5,9 @@ const app = express();
 app.use(express.json());
 
 app.use('/', router);
+/* app.get("/", (req, res) => {
+    req.headers
+}) */
 
 const PORT = process.env.PORT || 5001;
 

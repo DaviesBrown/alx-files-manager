@@ -5,8 +5,7 @@ export default class AppController {
   static getStatus(req, res) {
     const ralive = redisClient.isAlive();
     const dbalive = dbClient.isAlive();
-    res.status(200);
-    res.send(JSON.stringify({redis: ralive, db: dbalive}));
+    res.status(200).send({redis: ralive, dcb: dbalive});
 }
 
   static async getStats(req, res) {

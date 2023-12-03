@@ -43,6 +43,14 @@ class RedisClient {
         await this.client.set(key, duration, JSON
             .stringify(val));
     }
+    
+    async del(key) {
+        try {
+            await this.client.del(key);
+        } catch (err) {
+            console.log(`redis del: ${err}`)
+        }
+    }
 }
 
 const redisClient = new RedisClient();
