@@ -1,8 +1,10 @@
 import { existsSync, mkdir, writeFile } from "fs";
 import { ObjectID } from "mongodb";
+import { randomUUID } from "crypto";
+
+import getUser from "../utils/getUser"
 import dbClient from "../utils/db";
 import redisClient from "../utils/redis";
-import { randomUUID } from "crypto";
 
 export default class FilesController {  
   static async postUpload(req, res) {
@@ -64,13 +66,14 @@ export default class FilesController {
   static async getShow(req, res) {
     // GET /files/:id
     const x_token = req.headers['x-token'];
-    const parentId = req.params.id;
+    const parentId = req.params && req.params.id;
     const user_id = await redisClient.get(`auth_${x_token}`);
     const userCollection = dbClient.dbclient.db().collection('users');
     const user = await userCollection.findOne({ "_id": new ObjectID(user_id) });
     if (!user) {
         return res.status(401).send({"error": "Unauthorized"});
     }
+    console.log(user)
     const fileCollection = dbClient.dbclient.db().collection('files');
     const file = await fileCollection.findOne({
         "_id": new ObjectID(parentId),
@@ -86,7 +89,6 @@ export default class FilesController {
     // GET /files
     const x_token = req.headers['x-token'];
     const parentId = req.query && req.query.parentId;
-    console.log(parentId)
     const user_id = await redisClient.get(`auth_${x_token}`);
     const userCollection = dbClient.dbclient.db().collection('users');
     const user = await userCollection.findOne({ "_id": new ObjectID(user_id) });
@@ -108,5 +110,53 @@ export default class FilesController {
     }
     const file = await fileCollection.find({ "userId": new ObjectID(user_id) });
     res.send(await file.toArray());
+}
+
+static async putPublish(req, res) {
+    const user = await getUser(req.headers["x-token"]);
+    const fileId = req.params.id;
+    const fileCollection = dbClient.dbclient.db().collection('files');
+    let file = await fileCollection.findOne({
+        "_id": new ObjectID(fileId),
+        "userId": new ObjectID(user._id)
+    });
+    if (!file) {
+        return res.status(404).send({"error": "Not found"});
+    }
+    let filter = {
+        "_id": new ObjectID(fileId),
+        "userId": new ObjectID(user._id)
+    };
+    let newvalues = {$set: {isPublic: true}};
+    await fileCollection.updateOne(filter, newvalues);
+    file = await fileCollection.findOne({
+        "_id": new ObjectID(fileId),
+        "userId": new ObjectID(user._id)
+    });
+    res.status(200).send(file);
+  }
+
+  static async putUnpublish(req, res) {
+    const user = await getUser(req.headers["x-token"]);
+    const fileId = req.params.id;
+    const fileCollection = dbClient.dbclient.db().collection('files');
+    let file = await fileCollection.findOne({
+        "_id": new ObjectID(fileId),
+        "userId": new ObjectID(user._id)
+    });
+    if (!file) {
+        return res.status(404).send({"error": "Not found"});
+    }
+    let filter = {
+        "_id": new ObjectID(fileId),
+        "userId": new ObjectID(user._id)
+    };
+    let newvalues = {$set: {isPublic: false}};
+    await fileCollection.updateOne(filter, newvalues);
+    file = await fileCollection.findOne({
+        "_id": new ObjectID(fileId),
+        "userId": new ObjectID(user._id)
+    });
+    res.status(200).send(file);
   }
 }
