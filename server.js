@@ -6,7 +6,7 @@ app.use(express.json());
 
 app.use('/', router);
 /* app.get("/", (req, res) => {
-    req.params
+    res.type()
 }) */
 
 const PORT = process.env.PORT || 5000;

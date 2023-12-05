@@ -1,8 +1,9 @@
-import { existsSync, mkdir, writeFile } from "fs";
+import { existsSync, mkdir, readFile, readFileSync, writeFile } from "fs";
 import { ObjectID } from "mongodb";
 import { randomUUID } from "crypto";
+import mime from "mime-types";
 
-import getUser from "../utils/getUser"
+import getUser from "../utils/getUser";
 import dbClient from "../utils/db";
 import redisClient from "../utils/redis";
 
@@ -145,7 +146,7 @@ static async putPublish(req, res) {
         "userId": new ObjectID(user._id)
     });
     if (!file) {
-        return res.status(404).send({"error": "Not found"});
+        return res.status(404).json({"error": "Not found"});
     }
     let filter = {
         "_id": new ObjectID(fileId),
@@ -158,5 +159,29 @@ static async putPublish(req, res) {
         "userId": new ObjectID(user._id)
     });
     res.status(200).send(file);
+  }
+
+  static async getFile(req, res) {
+      // GET /files/:id/data
+      const user = await getUser(req.headers["x-token"]);
+    const fileId = req.params.id;
+    const fileCollection = dbClient.dbclient.db().collection('files');
+    let file = await fileCollection.findOne({
+        "_id": new ObjectID(fileId),
+        "userId": new ObjectID(user._id)
+    });
+    if (!file) {
+      return res.status(404).json({"error": "Not found"});
+    }
+    if (file.isPublic === false) {
+        return res.status(404).json({"error": "Not found"}); 
+    }
+    if (file.type === 'folder') {
+        return res.status(400).json({"error": "A folder doesn't have content"}); 
+    }
+    const mimeType = mime.contentType(file.name);
+    const fileContent = readFileSync(file.localPath);
+    res.contentType(mimeType);
+    res.send(fileContent);
   }
 }
