@@ -6,9 +6,11 @@ import mime from "mime-types";
 import getUser from "../utils/getUser";
 import dbClient from "../utils/db";
 import redisClient from "../utils/redis";
+import Queue from "bull";
 
 export default class FilesController {  
   static async postUpload(req, res) {
+    // POST /files
     const x_token = req.headers['x-token'];
     const user_id = await redisClient.get(`auth_${x_token}`);
     const userCollection = dbClient.dbclient.db().collection('users');
@@ -32,15 +34,15 @@ export default class FilesController {
         return res.status(400).send({"error": "Missing data"});
       }
       const fileCollection = dbClient.dbclient.db().collection('files');
+      const file = await fileCollection.findOne({ "_id": new ObjectID(parentId) });
       if (parentId) {
-
-        const file = await fileCollection.findOne({ "_id": new ObjectID(parentId) });
         if (!file) {
             return res.status(400).send({"error": "Parent not found"});
         } else if (file && file.type !== 'folder') {
             return res.status(400).send({"error": "Parent is not a folder"});
         }
       }
+      const fileId = file._id;
       const document = {name, type, parentId, isPublic};
       document.userId = user._id;
     if (type === 'folder') {
@@ -50,6 +52,10 @@ export default class FilesController {
         const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
         if (!existsSync(folderPath)) {
             mkdir(folderPath);
+        }
+        if (type === 'image') {
+            const fileQueue = new Queue("fileQueue");
+            const job = fileQueue.add({userId: user._id, fileId});
         }
         const filePath = `${folderPath}/${randomUUID()}`;
         const content = atob(data);

@@ -6,7 +6,7 @@ import dbClient from "../utils/db";
 import redisClient from "../utils/redis";
 
 export default class AuthController {
-  static async getConnect(req, res, next) {
+  static async getConnect(req, res) {
     try {
       const authheader = req.headers.authorization;
       const auth = new Buffer.from(authheader.split(' ')[1],
